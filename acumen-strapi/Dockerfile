@@ -26,6 +26,9 @@ RUN npm install --ignore-scripts
 # Copy backend application code
 COPY backend/ ./
 
+# Create public directory if it doesn't exist
+RUN mkdir -p public
+
 # Build Strapi admin
 ENV NODE_ENV=production
 RUN npm run build
