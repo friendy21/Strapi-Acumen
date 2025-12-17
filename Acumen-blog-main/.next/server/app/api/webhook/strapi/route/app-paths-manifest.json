@@ -1,0 +1,3 @@
+{
+  "/api/webhook/strapi/route": "app/api/webhook/strapi/route.js"
+}

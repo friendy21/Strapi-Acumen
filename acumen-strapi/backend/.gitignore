@@ -1,0 +1,64 @@
+############################
+# Strapi
+############################
+
+.env
+.env.*
+!.env.example
+
+############################
+# OS
+############################
+
+.DS_Store
+.vscode
+.idea
+
+############################
+# Miscellaneous
+############################
+
+.cache
+.tmp
+dist
+build
+*.log
+.strapi
+*.local
+
+############################
+# Node
+############################
+
+node_modules/
+package-lock.json
+yarn.lock
+
+############################
+# Build
+############################
+
+.cache/
+dist/
+build/
+.strapi-updater.json
+.strapi/
+public/uploads/*
+!public/uploads/.gitkeep
+
+############################
+# Database
+############################
+
+.db
+*.db
+*.sqlite
+*.sqlite3
+
+############################
+# Secrets
+############################
+
+*.key
+*.pem
+.env.production

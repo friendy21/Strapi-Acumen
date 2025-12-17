@@ -1,0 +1,10 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/_global-error/page.js")
+R.c("server/chunks/ssr/[root-of-the-server]__b0951958._.js")
+R.c("server/chunks/ssr/f6068_next_dist_1d4be01f._.js")
+R.c("server/chunks/ssr/f6068_next_dist_8574b61b._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__db09a19d._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__8df11d17._.js")
+R.c("server/chunks/ssr/f6068_next_dist_c1af8368._.js")
+R.c("server/chunks/ssr/5e41a_Acumen-blog-main__next-internal_server_app__global-error_page_actions_599c8443.js")
+R.m(7206)
+module.exports=R.m(7206).exports

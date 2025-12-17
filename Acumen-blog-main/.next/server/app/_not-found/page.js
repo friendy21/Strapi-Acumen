@@ -1,0 +1,13 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/_not-found/page.js")
+R.c("server/chunks/ssr/[root-of-the-server]__33a17222._.js")
+R.c("server/chunks/ssr/f6068_next_dist_1d4be01f._.js")
+R.c("server/chunks/ssr/f6068_next_dist_esm_build_templates_app-page_b6f1e003.js")
+R.c("server/chunks/ssr/[root-of-the-server]__db09a19d._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__8df11d17._.js")
+R.c("server/chunks/ssr/f6068_next_dist_c1af8368._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__45877345._.js")
+R.c("server/chunks/ssr/f6068_next_dist_client_components_630c58ad._.js")
+R.c("server/chunks/ssr/f6068_next_dist_client_components_builtin_forbidden_b74968ad.js")
+R.c("server/chunks/ssr/5e41a_Acumen-blog-main__next-internal_server_app__not-found_page_actions_5ac5c7dd.js")
+R.m(99162)
+module.exports=R.m(99162).exports

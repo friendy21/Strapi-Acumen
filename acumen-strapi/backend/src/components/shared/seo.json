@@ -1,0 +1,40 @@
+{
+    "collectionName": "components_shared_seos",
+    "info": {
+        "displayName": "SEO",
+        "description": "SEO metadata component for optimizing content discoverability",
+        "icon": "search"
+    },
+    "attributes": {
+        "metaTitle": {
+            "type": "string",
+            "maxLength": 60,
+            "required": false
+        },
+        "metaDescription": {
+            "type": "text",
+            "maxLength": 160,
+            "required": false
+        },
+        "keywords": {
+            "type": "text",
+            "required": false
+        },
+        "canonicalURL": {
+            "type": "string",
+            "required": false
+        },
+        "metaImage": {
+            "type": "media",
+            "multiple": false,
+            "required": false,
+            "allowedTypes": [
+                "images"
+            ]
+        },
+        "metaRobots": {
+            "type": "string",
+            "required": false
+        }
+    }
+}
