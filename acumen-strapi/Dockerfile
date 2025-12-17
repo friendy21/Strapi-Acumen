@@ -10,7 +10,7 @@ WORKDIR /opt/app
 COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN npm ci --only=production --ignore-scripts
+RUN npm ci --omit=dev --ignore-scripts
 
 
 # Stage 2: Builder
