@@ -10,7 +10,7 @@ WORKDIR /opt/app
 COPY backend/package*.json ./
 
 # Install dependencies
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm install --omit=dev --ignore-scripts
 
 
 # Stage 2: Builder
@@ -21,7 +21,7 @@ WORKDIR /opt/app
 
 # Copy package files from backend and install ALL dependencies (for build)
 COPY backend/package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 
 # Copy backend application code
 COPY backend/ ./
