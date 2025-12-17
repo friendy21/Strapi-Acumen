@@ -6,8 +6,8 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /opt/app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy package files from backend directory
+COPY backend/package*.json ./
 
 # Install dependencies
 RUN npm ci --omit=dev --ignore-scripts
@@ -19,9 +19,12 @@ FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /opt/app
 
-# Copy dependencies from deps stage
-COPY --from=deps /opt/app/node_modules ./node_modules
-COPY . .
+# Copy package files from backend and install ALL dependencies (for build)
+COPY backend/package*.json ./
+RUN npm ci --ignore-scripts
+
+# Copy backend application code
+COPY backend/ ./
 
 # Build Strapi admin
 ENV NODE_ENV=production
