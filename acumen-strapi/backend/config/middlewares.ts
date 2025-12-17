@@ -1,5 +1,3 @@
-import type { Schema, Struct } from '@strapi/strapi';
-
 export default [
     'strapi::logger',
     'strapi::errors',
@@ -45,4 +43,5 @@ export default [
     'strapi::session',
     'strapi::favicon',
     'strapi::public',
-] satisfies Struct.MiddlewaresConfig;
+];
+
