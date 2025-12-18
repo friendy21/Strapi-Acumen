@@ -1,5 +1,4 @@
-export default ({ env }) => ({
-    // GraphQL Plugin
+module.exports = ({ env }) => ({
     graphql: {
         config: {
             endpoint: '/graphql',
@@ -13,11 +12,9 @@ export default ({ env }) => ({
             },
         },
     },
-
-    // Upload Plugin
     upload: {
         config: {
-            sizeLimit: 10 * 1024 * 1024, // 10MB
+            sizeLimit: 10 * 1024 * 1024,
             breakpoints: {
                 xlarge: 1920,
                 large: 1280,
@@ -27,8 +24,6 @@ export default ({ env }) => ({
             },
         },
     },
-
-    // Users & Permissions Plugin
     'users-permissions': {
         config: {
             jwt: {

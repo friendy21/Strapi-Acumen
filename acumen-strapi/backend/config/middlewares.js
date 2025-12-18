@@ -1,4 +1,4 @@
-export default [
+module.exports = [
     'strapi::logger',
     'strapi::errors',
     {
@@ -36,7 +36,7 @@ export default [
             jsonLimit: '256mb',
             textLimit: '256mb',
             formidable: {
-                maxFileSize: 10 * 1024 * 1024, // 10MB
+                maxFileSize: 10 * 1024 * 1024,
             },
         },
     },
@@ -44,4 +44,3 @@ export default [
     'strapi::favicon',
     'strapi::public',
 ];
-

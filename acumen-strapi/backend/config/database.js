@@ -1,8 +1,8 @@
-export default ({ env }) => ({
+module.exports = ({ env }) => ({
     connection: {
         client: env('DATABASE_CLIENT', 'mysql2'),
         connection: {
-            host: env('DATABASE_HOST', '134.209.107.38'),
+            host: env('DATABASE_HOST', '10.104.16.10'),
             port: env.int('DATABASE_PORT', 3306),
             database: env('DATABASE_NAME', 'acumen_blog'),
             user: env('DATABASE_USERNAME', 'strapi_user'),
