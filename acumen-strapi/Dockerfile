@@ -37,7 +37,7 @@ RUN npm run build
 # Stage 3: Production Runner
 
 FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat mariadb-client
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 strapi
@@ -55,6 +55,8 @@ COPY --from=builder --chown=strapi:strapi /opt/app/node_modules ./node_modules
 COPY --from=builder --chown=strapi:strapi /opt/app/dist ./dist
 COPY --from=builder --chown=strapi:strapi /opt/app/public ./public
 COPY --from=builder --chown=strapi:strapi /opt/app/package.json ./
+COPY --from=builder --chown=strapi:strapi /opt/app/config ./config
+COPY --from=builder --chown=strapi:strapi /opt/app/src ./src
 
 # Create directories for uploads and cache
 RUN mkdir -p public/uploads .cache .tmp

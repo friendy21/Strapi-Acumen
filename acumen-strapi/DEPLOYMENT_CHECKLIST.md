@@ -1,200 +1,149 @@
-# Quick Deployment Checklist
+# Strapi Deployment Guide
 
-Use this checklist to deploy Strapi to DigitalOcean.
+## Hub-and-Spoke Database Architecture
 
-## Pre-Deployment (15 minutes)
+Deploy Strapi to DigitalOcean with a dedicated MariaDB database server.
 
-### DockerHub Setup
-- [ ] Create account: https://hub.docker.com
-- [ ] Create repository: `acumen-strapi`
-- [ ] Generate access token (Account → Security)
-- [ ] Save token
-
-### DigitalOcean Setup
-- [ ] Create Ubuntu 22.04 droplet ($6/month)
-- [ ] Add your SSH key
-- [ ] Save droplet IP: `_______________`
-
-### GitHub Secrets
-Go to: **Settings → Secrets and variables → Actions**
-
-Add these secrets:
-- [ ] `DOCKERHUB_USERNAME` = your DockerHub username
-- [ ] `DOCKERHUB_TOKEN` = token from DockerHub
-- [ ] `DIGITALOCEAN_ACCESS_TOKEN` = from DO → API → Tokens
-- [ ] `DROPLET_IP` = your droplet IP
-- [ ] `SSH_PRIVATE_KEY` = generate with `ssh-keygen`
+```
+┌─────────────────────────┐     ┌─────────────────────────┐
+│   App Server            │     │   Database Hub          │
+│   167.172.66.204        │────▶│   134.209.107.38        │
+│   - Strapi CMS          │3306 │   - MariaDB             │
+│   - Redis               │     │   - UFW Whitelist       │
+└─────────────────────────┘     └─────────────────────────┘
+```
 
 ---
 
-## Droplet Configuration (10 minutes)
+## ⚡ Quick Setup
 
-SSH into droplet:
+### Step 1: Configure Database Server (134.209.107.38)
+
+SSH into the database server and run the setup:
+
 ```bash
-ssh root@YOUR_DROPLET_IP
+ssh root@134.209.107.38
+
+# Download and run setup script
+curl -sSL https://raw.githubusercontent.com/friendy21/Strapi-Acumen/main/acumen-strapi/deployments/setup-mariadb.sh | bash
 ```
 
-Run setup:
+Or manually:
+
 ```bash
-curl -fsSL YOUR_GITHUB_RAW_URL/deployments/setup-digitalocean.sh | bash
+# Install MariaDB
+apt update && apt install -y mariadb-server mariadb-client
+mysql_secure_installation
+
+# Configure for remote connections
+sed -i 's/bind-address.*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
+systemctl restart mariadb
+
+# Setup firewall (ONLY allow app server)
+ufw allow 22/tcp
+ufw allow from 167.172.66.204 to any port 3306 proto tcp
+ufw --force enable
+
+# Create database and user
+mysql -u root -p << 'SQL'
+CREATE DATABASE acumen_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'strapi_user'@'167.172.66.204' IDENTIFIED BY 'YOUR_PASSWORD_HERE';
+GRANT ALL PRIVILEGES ON acumen_blog.* TO 'strapi_user'@'167.172.66.204';
+FLUSH PRIVILEGES;
+SQL
 ```
 
-Generate secrets (run 9 times):
-```bash
-openssl rand -base64 32
-```
-
-Edit environment:
-```bash
-nano /opt/acumen-strapi/.env
-```
-
-Update these values:
-```
-DOCKERHUB_USERNAME=_______________
-DATABASE_PASSWORD=_______________
-APP_KEYS=_______________,_______________,_______________,_______________
-API_TOKEN_SALT=_______________
-ADMIN_JWT_SECRET=_______________
-TRANSFER_TOKEN_SALT=_______________
-JWT_SECRET=_______________
-STRAPI_URL=http://YOUR_IP:1337
-FRONTEND_URL=https://yourdomain.com
-```
-
-Save: `Ctrl+X`, `Y`, `Enter`
+> ⚠️ Replace `YOUR_PASSWORD_HERE` with a secure password: `openssl rand -base64 32`
 
 ---
 
-## Deploy (2 minutes)
+### Step 2: Add GitHub Secrets
+
+Go to **GitHub → Settings → Secrets and variables → Actions**
+
+| Secret | Value |
+|--------|-------|
+| `DROPLET_IP` | `167.172.66.204` |
+| `DROPLET_SSH_KEY` | Your SSH private key |
+| `DATABASE_HOST` | `134.209.107.38` |
+| `STRAPI_DATABASE_PASSWORD` | Password from Step 1 |
+| `STRAPI_APP_KEYS` | 4 comma-separated keys |
+| `STRAPI_API_TOKEN_SALT` | Random base64 |
+| `STRAPI_ADMIN_JWT_SECRET` | Random base64 |
+| `STRAPI_TRANSFER_TOKEN_SALT` | Random base64 |
+| `STRAPI_JWT_SECRET` | Random base64 |
+
+Generate keys with: `openssl rand -base64 32`
+
+---
+
+### Step 3: Deploy
 
 ```bash
 git add .
-git commit -m "Deploy to production"
+git commit -m "Deploy with Hub-and-Spoke architecture"
 git push origin main
 ```
 
-Watch in: **GitHub → Actions** tab
+---
 
-Wait for ✅ green checkmark (~5-10 minutes)
+## 🎉 Access Your Strapi
+
+After deployment:
+- **Admin:** http://167.172.66.204:1337/admin
+- **API:** http://167.172.66.204:1337/api
 
 ---
 
-## Verify (5 minutes)
+## � Troubleshooting
 
-### Check Deployment
+### "Cannot reach MariaDB"
+
+On DB server, verify:
 ```bash
-ssh root@YOUR_DROPLET_IP
+# Check MariaDB running
+systemctl status mariadb
+
+# Check bind address
+grep bind-address /etc/mysql/mariadb.conf.d/50-server.cnf
+
+# Check firewall
+ufw status
+```
+
+### "Access denied for user"
+
+On DB server:
+```bash
+mysql -u root -p -e "SELECT User, Host FROM mysql.user WHERE User='strapi_user';"
+# Should show: strapi_user | 167.172.66.204
+```
+
+### View Logs
+
+```bash
+ssh root@167.172.66.204
 cd /opt/acumen-strapi
-docker-compose ps  # All should be "Up"
-```
-
-### Access Admin
-1. Open: `http://YOUR_IP:1337/admin`
-2. Create admin user
-3. Save credentials
-
-### Configure Permissions
-1. Settings → Users & Permissions → Public
-2. Enable for each content type:
-   - [x] find
-   - [x] findOne
-3. Save
-
-### Generate API Token
-1. Settings → API Tokens
-2. Create new token
-3. Name: "Frontend"
-4. Type: Read-only
-5. Duration: Unlimited
-6. Copy token
-
-### Update Frontend
-```env
-# Acumen-blog-main/.env.local
-NEXT_PUBLIC_STRAPI_URL=http://YOUR_IP:1337
-STRAPI_API_TOKEN=paste-token-here
+docker compose logs -f strapi
 ```
 
 ---
 
-## SSL Setup (Optional, 15 minutes)
+## � Architecture Benefits
 
-### Point Domain
-In domain registrar:
-- A record: `api.yourdomain.com` → `YOUR_IP`
-
-### Install Certificate
-```bash
-ssh root@YOUR_DROPLET_IP
-
-# Install Certbot
-apt-get install -y certbot python3-certbot-nginx
-
-# Setup Nginx
-cp /path/to/nginx/strapi.conf /etc/nginx/sites-available/strapi
-ln -s /etc/nginx/sites-available/strapi /etc/nginx/sites-enabled/
-nginx -t
-systemctl reload nginx
-
-# Get SSL
-certbot --nginx -d api.yourdomain.com
-```
-
-### Update Config
-```bash
-nano /opt/acumen-strapi/.env
-# Change: STRAPI_URL=https://api.yourdomain.com
-docker-compose restart strapi
-```
-
----
-
-## Common Commands
-
-```bash
-# View logs
-ssh root@YOUR_IP
-docker-compose logs -f strapi
-
-# Restart
-docker-compose restart strapi
-
-# Check status
-docker-compose ps
-
-# Full restart
-docker-compose down && docker-compose up -d
-```
-
----
-
-## Troubleshooting
-
-### Deployment fails
-- Check GitHub Actions logs
-- Verify all secrets are correct
-- Ensure SSH key is added to droplet
-
-### Can't access admin
-- Check firewall: `ufw status`
-- Check logs: `docker-compose logs strapi`
-- Restart: `docker-compose restart strapi`
-
-### Database errors
-- Check PostgreSQL: `docker-compose exec postgres psql -U strapi_user -d acumen_blog`
-- Check init.sql ran: `docker-compose logs postgres | grep "Strapi"`
+| Feature | Benefit |
+|---------|---------|
+| Separate DB Server | Better security isolation |
+| UFW Whitelist | Only app server can access DB |
+| Scalable | Add more app servers easily |
+| Centralized Backup | Single DB to backup |
 
 ---
 
 ## ✅ Done!
 
-Once complete:
-- ✅ Strapi running on DigitalOcean
-- ✅ Auto-deploys on every `git push`
-- ✅ Admin panel accessible
-- ✅ API endpoints working
-- ✅ Frontend can connect
-
-**Total time:** 30-45 minutes  
-**Monthly cost:** $6-7
+Your Strapi is now running with:
+- ✅ Dedicated MariaDB server
+- ✅ Strict firewall whitelist
+- ✅ Auto-deploy on git push
+- ✅ Database connectivity check

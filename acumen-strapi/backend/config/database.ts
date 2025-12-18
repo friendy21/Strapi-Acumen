@@ -1,15 +1,15 @@
 export default ({ env }) => ({
     connection: {
-        client: 'postgres',
+        client: env('DATABASE_CLIENT', 'mysql2'),
         connection: {
-            host: env('DATABASE_HOST', 'postgres'),
-            port: env.int('DATABASE_PORT', 5432),
+            host: env('DATABASE_HOST', '134.209.107.38'),
+            port: env.int('DATABASE_PORT', 3306),
             database: env('DATABASE_NAME', 'acumen_blog'),
             user: env('DATABASE_USERNAME', 'strapi_user'),
-            password: env('DATABASE_PASSWORD', 'strapi_password'),
-            ssl: env.bool('DATABASE_SSL', false) && {
-                rejectUnauthorized: env.bool('DATABASE_SSL_REJECT_UNAUTHORIZED', false),
-            },
+            password: env('DATABASE_PASSWORD'),
+            ssl: env.bool('DATABASE_SSL', false) ? {
+                rejectUnauthorized: env.bool('DATABASE_SSL_REJECT_UNAUTHORIZED', true),
+            } : false,
         },
         pool: {
             min: env.int('DATABASE_POOL_MIN', 2),

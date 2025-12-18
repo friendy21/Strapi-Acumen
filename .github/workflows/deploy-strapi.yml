@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean
+name: Deploy Strapi to DigitalOcean
 
 on:
   push:
@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-and-push:
-    name: Build and Push to GitHub Container Registry
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,7 +56,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to DigitalOcean
+    name: Deploy to DigitalOcean Droplet
     needs: build-and-push
     runs-on: ubuntu-latest
     
@@ -64,32 +64,199 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH and Deploy
-        env:
-          DROPLET_IP: ${{ secrets.DROPLET_IP }}
-          DROPLET_SSH_KEY: ${{ secrets.DROPLET_SSH_KEY }}
+      - name: Validate Required Secrets
+        run: |
+          missing=""
+          [ -z "${{ secrets.DROPLET_IP }}" ] && missing="$missing DROPLET_IP"
+          [ -z "${{ secrets.DROPLET_SSH_KEY }}" ] && missing="$missing DROPLET_SSH_KEY"
+          [ -z "${{ secrets.DATABASE_HOST }}" ] && missing="$missing DATABASE_HOST"
+          [ -z "${{ secrets.STRAPI_DATABASE_PASSWORD }}" ] && missing="$missing STRAPI_DATABASE_PASSWORD"
+          [ -z "${{ secrets.STRAPI_APP_KEYS }}" ] && missing="$missing STRAPI_APP_KEYS"
+          [ -z "${{ secrets.STRAPI_API_TOKEN_SALT }}" ] && missing="$missing STRAPI_API_TOKEN_SALT"
+          [ -z "${{ secrets.STRAPI_ADMIN_JWT_SECRET }}" ] && missing="$missing STRAPI_ADMIN_JWT_SECRET"
+          [ -z "${{ secrets.STRAPI_TRANSFER_TOKEN_SALT }}" ] && missing="$missing STRAPI_TRANSFER_TOKEN_SALT"
+          [ -z "${{ secrets.STRAPI_JWT_SECRET }}" ] && missing="$missing STRAPI_JWT_SECRET"
+          
+          if [ -n "$missing" ]; then
+            echo "❌ Missing required GitHub Secrets:$missing"
+            echo ""
+            echo "Please add these secrets in GitHub → Settings → Secrets and variables → Actions"
+            echo ""
+            echo "Required secrets:"
+            echo "  DROPLET_IP               - App server IP (167.172.66.204)"
+            echo "  DROPLET_SSH_KEY          - SSH private key for root access"
+            echo "  DATABASE_HOST            - MariaDB server IP (134.209.107.38)"
+            echo "  STRAPI_DATABASE_PASSWORD - MariaDB password for strapi_user"
+            echo "  STRAPI_APP_KEYS          - 4 comma-separated base64 keys"
+            echo "  STRAPI_API_TOKEN_SALT    - Random base64 string"
+            echo "  STRAPI_ADMIN_JWT_SECRET  - Random base64 string"
+            echo "  STRAPI_TRANSFER_TOKEN_SALT - Random base64 string"
+            echo "  STRAPI_JWT_SECRET        - Random base64 string"
+            exit 1
+          fi
+          echo "✅ All required secrets are configured"
+
+      - name: Setup SSH Connection
         run: |
           mkdir -p ~/.ssh
-          echo "$DROPLET_SSH_KEY" > ~/.ssh/deploy_key
+          echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
-          
-          ssh -i ~/.ssh/deploy_key root@$DROPLET_IP 'mkdir -p /opt/acumen-strapi'
-          
-          scp -i ~/.ssh/deploy_key ./acumen-strapi/docker-compose.prod.yml root@$DROPLET_IP:/opt/acumen-strapi/docker-compose.yml
-          
-          ssh -i ~/.ssh/deploy_key root@$DROPLET_IP 'cd /opt/acumen-strapi && docker compose pull && docker compose up -d --force-recreate && docker image prune -af'
-          
-          echo "Waiting for Strapi to start..."
-          sleep 60
-          
-          ssh -i ~/.ssh/deploy_key root@$DROPLET_IP 'curl -f http://localhost:1337/_health' || echo "Health check pending - Strapi is starting up"
+          ssh-keyscan -H ${{ secrets.DROPLET_IP }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Deployment Status
+      - name: Setup Server (First-Time Only)
+        run: |
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'bash -s' << 'SETUP_SCRIPT'
+          set -e
+          
+          # Check if Docker is installed
+          if ! command -v docker &> /dev/null; then
+            echo "📦 Installing Docker..."
+            apt-get update
+            apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+            apt-get update
+            apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+            systemctl enable docker
+            systemctl start docker
+            echo "✅ Docker installed"
+          else
+            echo "✅ Docker already installed"
+          fi
+          
+          # Install netcat for DB connectivity test
+          apt-get install -y netcat-openbsd 2>/dev/null || true
+          
+          # Create app directory
+          mkdir -p /opt/acumen-strapi
+          
+          # Open firewall for Strapi
+          if command -v ufw &> /dev/null; then
+            ufw allow 1337/tcp 2>/dev/null || true
+            ufw allow 22/tcp 2>/dev/null || true
+          fi
+          
+          echo "✅ Server setup complete"
+          SETUP_SCRIPT
+
+      - name: Test Database Connectivity
+        run: |
+          echo "🔍 Testing connectivity to MariaDB server..."
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} "nc -zv ${{ secrets.DATABASE_HOST }} 3306 -w 5" || {
+            echo "❌ Cannot reach MariaDB at ${{ secrets.DATABASE_HOST }}:3306"
+            echo ""
+            echo "Check that:"
+            echo "  1. MariaDB is running on the DB server"
+            echo "  2. bind-address is set to 0.0.0.0 in 50-server.cnf"
+            echo "  3. UFW allows this app server IP on port 3306"
+            echo "  4. strapi_user is created for this app server IP"
+            exit 1
+          }
+          echo "✅ Database server is reachable"
+
+      - name: Create Environment File
+        run: |
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'cat > /opt/acumen-strapi/.env << EOF
+          # Auto-generated by GitHub Actions - $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          # Hub-and-Spoke Architecture - External MariaDB
+          
+          # MariaDB Connection (DB Hub)
+          DATABASE_CLIENT=mysql2
+          DATABASE_HOST=${{ secrets.DATABASE_HOST }}
+          DATABASE_PORT=3306
+          DATABASE_NAME=acumen_blog
+          DATABASE_USERNAME=strapi_user
+          DATABASE_PASSWORD=${{ secrets.STRAPI_DATABASE_PASSWORD }}
+          DATABASE_SSL=false
+          
+          # Strapi Security
+          APP_KEYS=${{ secrets.STRAPI_APP_KEYS }}
+          API_TOKEN_SALT=${{ secrets.STRAPI_API_TOKEN_SALT }}
+          ADMIN_JWT_SECRET=${{ secrets.STRAPI_ADMIN_JWT_SECRET }}
+          TRANSFER_TOKEN_SALT=${{ secrets.STRAPI_TRANSFER_TOKEN_SALT }}
+          JWT_SECRET=${{ secrets.STRAPI_JWT_SECRET }}
+          
+          # Server
+          NODE_ENV=production
+          HOST=0.0.0.0
+          PORT=1337
+          EOF'
+          echo "✅ Environment file created"
+
+      - name: Deploy Application
+        run: |
+          # Copy docker-compose file
+          scp -i ~/.ssh/deploy_key ./acumen-strapi/docker-compose.prod.yml root@${{ secrets.DROPLET_IP }}:/opt/acumen-strapi/docker-compose.yml
+          
+          # Pull and deploy
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'cd /opt/acumen-strapi && docker compose pull && docker compose up -d --force-recreate'
+          
+          # Clean up old images
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'docker image prune -af' || true
+          
+          echo "✅ Containers started"
+
+      - name: Wait for Strapi Health Check
+        run: |
+          echo "⏳ Waiting for Strapi to start (this may take 2-3 minutes)..."
+          
+          for i in {1..24}; do
+            sleep 10
+            echo "Health check attempt $i/24..."
+            
+            # Check if container is running
+            status=$(ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'docker inspect --format="{{.State.Status}}" acumen-strapi 2>/dev/null' || echo "not_found")
+            
+            if [ "$status" = "exited" ]; then
+              echo "❌ Container exited unexpectedly!"
+              exit 1
+            fi
+            
+            # Check health endpoint
+            if ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'curl -sf http://localhost:1337/_health > /dev/null 2>&1'; then
+              echo ""
+              echo "🎉 =============================================="
+              echo "   DEPLOYMENT SUCCESSFUL!"
+              echo "   =============================================="
+              echo ""
+              echo "   Strapi Admin: http://${{ secrets.DROPLET_IP }}:1337/admin"
+              echo "   API Endpoint: http://${{ secrets.DROPLET_IP }}:1337/api"
+              echo "   Database:     ${{ secrets.DATABASE_HOST }}:3306"
+              echo ""
+              exit 0
+            fi
+          done
+          
+          echo "❌ Health check failed after 4 minutes"
+          exit 1
+
+      - name: Show Logs on Failure
+        if: failure()
+        run: |
+          echo ""
+          echo "📋 =============================================="
+          echo "   STRAPI CONTAINER LOGS"
+          echo "   =============================================="
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'cd /opt/acumen-strapi && docker compose logs --tail=150 strapi' || true
+          
+          echo ""
+          echo "📋 =============================================="
+          echo "   CONTAINER STATUS"
+          echo "   =============================================="
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'cd /opt/acumen-strapi && docker compose ps' || true
+
+      - name: Deployment Summary
         if: always()
         run: |
+          echo ""
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful"
+            echo "✅ Deployment completed successfully!"
           else
-            echo "❌ Deployment failed"
+            echo "❌ Deployment failed - check logs above for details"
+            echo ""
+            echo "Common issues:"
+            echo "  1. Missing or incorrect GitHub Secrets"
+            echo "  2. Database connection refused (check DB server firewall)"
+            echo "  3. Wrong database password"
+            echo "  4. MariaDB user not created for this app server IP"
           fi
