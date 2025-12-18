@@ -5,7 +5,7 @@ version: '3.8'
 
 services:
   strapi:
-    image: ghcr.io/${GITHUB_REPOSITORY}/acumen-strapi:latest
+    image: ghcr.io/friendy21/strapi-acumen/acumen-strapi:latest
     container_name: acumen-strapi
     restart: always
     environment:
