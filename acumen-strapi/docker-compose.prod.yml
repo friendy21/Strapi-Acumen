@@ -1,5 +1,5 @@
 # Docker Compose - Production (DigitalOcean)
-# Database is now hosted on external MariaDB server (Hub-and-Spoke Architecture)
+# Database is hosted on external MariaDB server (Hub-and-Spoke Architecture)
 
 services:
   strapi:
@@ -11,7 +11,7 @@ services:
     environment:
       NODE_ENV: production
       # MariaDB connection to external DB Hub
-      DATABASE_CLIENT: mysql2
+      DATABASE_CLIENT: mysql
       DATABASE_HOST: ${DATABASE_HOST:-134.209.107.38}
       DATABASE_PORT: 3306
       DATABASE_NAME: ${DATABASE_NAME:-acumen_blog}
@@ -30,6 +30,9 @@ services:
       - "1337:1337"
     networks:
       - acumen-network
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:1337/_health" ]
       interval: 30s
