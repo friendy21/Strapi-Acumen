@@ -1,0 +1,70 @@
+# Docker Compose - Development Environment
+# Strapi v5 with MariaDB (external) + Redis
+
+services:
+
+  # Strapi CMS Application (Development Mode)
+  strapi:
+    image: ghcr.io/friendy21/strapi-acumen/acumen-strapi:latest
+    container_name: acumen-strapi
+    restart: unless-stopped
+    environment:
+      DATABASE_CLIENT: ${DATABASE_CLIENT:-mysql}
+      DATABASE_HOST: ${DATABASE_HOST:-10.104.16.10}
+      DATABASE_PORT: ${DATABASE_PORT:-3306}
+      DATABASE_NAME: ${DATABASE_NAME:-acumen_blog}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-strapi_user}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_SSL: ${DATABASE_SSL:-false}
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 1337
+      APP_KEYS: ${APP_KEYS}
+      API_TOKEN_SALT: ${API_TOKEN_SALT}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT}
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      # Mount source for hot-reload in development
+      - ./backend/src:/opt/app/src
+      - ./backend/config:/opt/app/config
+      - ./backend/public/uploads:/opt/app/public/uploads
+    ports:
+      - "1337:1337"
+    networks:
+      - acumen-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:1337/_health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Redis Cache
+  redis:
+    container_name: acumen-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - acumen-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  acumen-network:
+    driver: bridge
+
+volumes:
+  redis-data:

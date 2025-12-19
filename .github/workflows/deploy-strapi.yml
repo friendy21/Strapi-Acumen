@@ -48,7 +48,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./acumen-strapi
-          file: ./acumen-strapi/Dockerfile
+          file: ./acumen-strapi/Dockerfile.dev
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -177,7 +177,7 @@ jobs:
           JWT_SECRET=${{ secrets.STRAPI_JWT_SECRET }}
           
           # Server
-          NODE_ENV=production
+          NODE_ENV=development
           HOST=0.0.0.0
           PORT=1337
           EOF'
@@ -185,8 +185,8 @@ jobs:
 
       - name: Deploy Application
         run: |
-          # Copy docker-compose file
-          scp -i ~/.ssh/deploy_key ./acumen-strapi/docker-compose.prod.yml root@${{ secrets.DROPLET_IP }}:/opt/acumen-strapi/docker-compose.yml
+          # Copy docker-compose file (using dev version for development mode)
+          scp -i ~/.ssh/deploy_key ./acumen-strapi/docker-compose.dev.yml root@${{ secrets.DROPLET_IP }}:/opt/acumen-strapi/docker-compose.yml
           
           # Pull and deploy
           ssh -i ~/.ssh/deploy_key root@${{ secrets.DROPLET_IP }} 'cd /opt/acumen-strapi && docker compose pull && docker compose up -d --force-recreate'

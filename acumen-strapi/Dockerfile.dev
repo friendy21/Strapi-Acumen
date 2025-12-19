@@ -1,0 +1,31 @@
+# Development Dockerfile for Strapi v5
+# Includes all dependencies for npm run develop
+
+FROM node:20-alpine
+
+# Install build tools
+RUN apk add --no-cache libc6-compat python3 make g++ mariadb-client
+
+WORKDIR /opt/app
+
+# Copy package files
+COPY backend/package*.json ./
+
+# Install ALL dependencies (including devDependencies)
+RUN npm install
+
+# Copy application code
+COPY backend/ ./
+
+# Create necessary directories
+RUN mkdir -p public/uploads .cache .tmp
+
+# Set environment
+ENV NODE_ENV=development
+ENV HOST=0.0.0.0
+ENV PORT=1337
+
+EXPOSE 1337
+
+# Run in development mode with admin auto-build
+CMD ["npm", "run", "develop"]

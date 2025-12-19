@@ -21,6 +21,8 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-strapi_password}
       DATABASE_SSL: ${DATABASE_SSL:-false}
       NODE_ENV: ${NODE_ENV:-development}
+    # Use develop for content-type builder and auto admin build
+    command: npm run develop
     volumes:
       - ./backend/config:/opt/app/config
       - ./backend/src:/opt/app/src
