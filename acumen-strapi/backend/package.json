@@ -23,10 +23,7 @@
         "react-router-dom": "^6.28.0",
         "styled-components": "^6.1.14"
     },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "typescript": "^5.7.2"
-    },
+    "devDependencies": {},
     "engines": {
         "node": ">=18.0.0 <=22.x.x",
         "npm": ">=6.0.0"
