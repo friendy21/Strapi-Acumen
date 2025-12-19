@@ -11,8 +11,10 @@
         }
     },
     "include": [
-        "./",
-        "src/**/*.json"
+        "src/**/*.ts",
+        "src/**/*.json",
+        "config/**/*.ts",
+        "config/**/*.js"
     ],
     "exclude": [
         "node_modules/",
