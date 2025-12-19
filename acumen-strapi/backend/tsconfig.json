@@ -4,6 +4,7 @@
         "outDir": "dist",
         "rootDir": ".",
         "baseUrl": "./",
+        "skipLibCheck": true,
         "paths": {
             "~/*": [
                 "./*"
@@ -11,19 +12,14 @@
         }
     },
     "include": [
-        "src/**/*.ts",
-        "src/**/*.json",
-        "config/**/*.ts",
-        "config/**/*.js"
+        "src/**/*",
+        "config/**/*"
     ],
     "exclude": [
         "node_modules/",
         "build/",
         "dist/",
         ".cache/",
-        ".tmp/",
-        "src/admin/",
-        "**/*.test.ts",
-        "src/plugins/**"
+        ".tmp/"
     ]
 }
