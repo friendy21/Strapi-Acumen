@@ -58,9 +58,9 @@ COPY --from=builder --chown=strapi:strapi /opt/app/package.json ./
 COPY --from=builder --chown=strapi:strapi /opt/app/config ./config
 COPY --from=builder --chown=strapi:strapi /opt/app/src ./src
 
-# Create directories for uploads and cache
-RUN mkdir -p public/uploads .cache .tmp
-RUN chown -R strapi:strapi public .cache .tmp
+# Create directories for uploads, cache, and database migrations
+RUN mkdir -p public/uploads .cache .tmp database/migrations
+RUN chown -R strapi:strapi public .cache .tmp database
 
 # Switch to non-root user
 USER strapi
