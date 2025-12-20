@@ -75,6 +75,7 @@ jobs:
           [ -z "${{ secrets.STRAPI_ADMIN_JWT_SECRET }}" ] && missing="$missing STRAPI_ADMIN_JWT_SECRET"
           [ -z "${{ secrets.STRAPI_TRANSFER_TOKEN_SALT }}" ] && missing="$missing STRAPI_TRANSFER_TOKEN_SALT"
           [ -z "${{ secrets.STRAPI_JWT_SECRET }}" ] && missing="$missing STRAPI_JWT_SECRET"
+          [ -z "${{ secrets.TENANT_ID }}" ] && missing="$missing TENANT_ID"
           
           if [ -n "$missing" ]; then
             echo "❌ Missing required GitHub Secrets:$missing"
@@ -91,6 +92,7 @@ jobs:
             echo "  STRAPI_ADMIN_JWT_SECRET  - Random base64 string"
             echo "  STRAPI_TRANSFER_TOKEN_SALT - Random base64 string"
             echo "  STRAPI_JWT_SECRET        - Random base64 string"
+            echo "  TENANT_ID                - Unique tenant identifier (e.g., tenant_acumen_main)"
             exit 1
           fi
           echo "✅ All required secrets are configured"
@@ -167,6 +169,9 @@ jobs:
           DATABASE_USERNAME=strapi_user
           DATABASE_PASSWORD=${{ secrets.STRAPI_DATABASE_PASSWORD }}
           DATABASE_SSL=false
+          
+          # Multi-Tenant Configuration
+          TENANT_ID=${{ secrets.TENANT_ID }}
           
           # Strapi Security
           APP_KEYS=${{ secrets.STRAPI_APP_KEYS }}

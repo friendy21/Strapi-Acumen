@@ -10,6 +10,8 @@ services:
       - .env
     environment:
       NODE_ENV: production
+      # Multi-tenant configuration
+      TENANT_ID: ${TENANT_ID:-default}
       # MariaDB connection to external DB Hub
       DATABASE_CLIENT: mysql
       DATABASE_HOST: ${DATABASE_HOST:-134.209.107.38}

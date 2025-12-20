@@ -2,6 +2,10 @@ module.exports = [
     'strapi::logger',
     'strapi::errors',
     {
+        name: 'global::tenant-context',
+        config: {},
+    },
+    {
         name: 'strapi::security',
         config: {
             contentSecurityPolicy: {
