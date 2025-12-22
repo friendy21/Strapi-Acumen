@@ -6,6 +6,13 @@ module.exports = [
         config: {},
     },
     {
+        name: 'global::metrics',
+        config: {
+            path: '/metrics',
+            apiKey: process.env.METRICS_API_KEY || null,
+        },
+    },
+    {
         name: 'strapi::security',
         config: {
             contentSecurityPolicy: {
