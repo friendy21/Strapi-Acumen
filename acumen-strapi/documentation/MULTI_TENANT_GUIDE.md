@@ -30,9 +30,15 @@ A comprehensive guide for deploying and managing the multi-tenant Strapi CMS.
 
 ## How Tenant Isolation Works
 
+Tenancy is enforced by `tenant_id` fields on content types combined with the
+`tenant-context` middleware, which sets the request-scoped tenant value used by
+query filters.
+
 1. **TENANT_ID Environment Variable** - Each app server has a unique `TENANT_ID`
 2. **Tenant Middleware** - Extracts tenant context from request or environment
-3. **Lifecycle Hooks** - Automatically filter all queries by `tenant_id`
+   (see `backend/src/middlewares/tenant-context.js`)
+3. **Lifecycle Hooks / Utilities** - Automatically filter all queries by
+   `tenant_id` (see `backend/src/utils/tenant-utils.js`)
 
 ### Data Flow
 
@@ -133,6 +139,20 @@ src/api/category/content-types/category/lifecycles.js
 src/api/tag/content-types/tag/lifecycles.js
 src/api/site-setting/content-types/site-setting/lifecycles.js
 ```
+
+---
+
+## Database-per-Tenant (Separate Implementation Plan)
+
+If stronger isolation is required, use distinct Strapi instances per tenant
+backed by separate databases. Avoid per-request database switching inside a
+single Strapi process. A high-level plan:
+
+1. **Provision** one Strapi deployment per tenant (separate Docker Compose,
+   Kubernetes namespace, or VM).
+2. **Configure** each instance with its own database credentials and schema.
+3. **Route** traffic via DNS or a gateway to the correct tenant instance.
+4. **Operate** with separate secrets, backups, and scaling policies per tenant.
 
 ---
 
