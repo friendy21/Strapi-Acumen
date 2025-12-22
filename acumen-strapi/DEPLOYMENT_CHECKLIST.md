@@ -70,6 +70,7 @@ Go to **GitHub → Settings → Secrets and variables → Actions**
 | `STRAPI_APP_KEYS` | 4 comma-separated keys |
 | `STRAPI_API_TOKEN_SALT` | Random base64 |
 | `STRAPI_ADMIN_JWT_SECRET` | Random base64 |
+| `METRICS_API_KEY` | Secret for Prometheus `/metrics` endpoint |
 | `STRAPI_TRANSFER_TOKEN_SALT` | Random base64 |
 | `STRAPI_JWT_SECRET` | Random base64 |
 
@@ -92,6 +93,21 @@ git push origin main
 After deployment:
 - **Admin:** http://167.172.66.204:1337/admin
 - **API:** http://167.172.66.204:1337/api
+
+---
+
+## 📊 Metrics Endpoint
+
+The Prometheus metrics exporter is available at:
+
+- **Metrics:** http://167.172.66.204:1337/metrics
+
+Secure the endpoint by setting `METRICS_API_KEY` and sending it as either:
+
+- `Authorization: Bearer <METRICS_API_KEY>`
+- `X-API-Key: <METRICS_API_KEY>`
+
+Ensure your firewall/ingress rules only allow your Prometheus server to reach `/metrics`.
 
 ---
 
