@@ -2,13 +2,13 @@
 
 ## Hub-and-Spoke Database Architecture
 
-Deploy Strapi to DigitalOcean with a dedicated MariaDB database server.
+Deploy Strapi to DigitalOcean with a dedicated PostgreSQL database server.
 
 ```
 ┌─────────────────────────┐     ┌─────────────────────────┐
 │   App Server            │     │   Database Hub          │
 │   167.172.66.204        │────▶│   134.209.107.38        │
-│   - Strapi CMS          │3306 │   - MariaDB             │
+│   - Strapi CMS          │5432 │   - PostgreSQL          │
 │   - Redis               │     │   - UFW Whitelist       │
 └─────────────────────────┘     └─────────────────────────┘
 ```
@@ -23,33 +23,29 @@ SSH into the database server and run the setup:
 
 ```bash
 ssh root@134.209.107.38
-
-# Download and run setup script
-curl -sSL https://raw.githubusercontent.com/friendy21/Strapi-Acumen/main/acumen-strapi/deployments/setup-mariadb.sh | bash
 ```
 
-Or manually:
+Then configure PostgreSQL:
 
 ```bash
-# Install MariaDB
-apt update && apt install -y mariadb-server mariadb-client
-mysql_secure_installation
+# Install PostgreSQL
+apt update && apt install -y postgresql postgresql-contrib
 
 # Configure for remote connections
-sed -i 's/bind-address.*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
-systemctl restart mariadb
+sed -i "s/^#listen_addresses =.*/listen_addresses = '*'/" /etc/postgresql/*/main/postgresql.conf
+echo "host    acumen_blog    strapi_user    167.172.66.204/32    scram-sha-256" >> /etc/postgresql/*/main/pg_hba.conf
+systemctl restart postgresql
 
 # Setup firewall (ONLY allow app server)
 ufw allow 22/tcp
-ufw allow from 167.172.66.204 to any port 3306 proto tcp
+ufw allow from 167.172.66.204 to any port 5432 proto tcp
 ufw --force enable
 
 # Create database and user
-mysql -u root -p << 'SQL'
-CREATE DATABASE acumen_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'strapi_user'@'167.172.66.204' IDENTIFIED BY 'YOUR_PASSWORD_HERE';
-GRANT ALL PRIVILEGES ON acumen_blog.* TO 'strapi_user'@'167.172.66.204';
-FLUSH PRIVILEGES;
+sudo -u postgres psql << 'SQL'
+CREATE USER strapi_user WITH PASSWORD 'YOUR_PASSWORD_HERE';
+CREATE DATABASE acumen_blog OWNER strapi_user;
+GRANT ALL PRIVILEGES ON DATABASE acumen_blog TO strapi_user;
 SQL
 ```
 
@@ -95,17 +91,17 @@ After deployment:
 
 ---
 
-## � Troubleshooting
+## 🔧 Troubleshooting
 
-### "Cannot reach MariaDB"
+### "Cannot reach PostgreSQL"
 
 On DB server, verify:
 ```bash
-# Check MariaDB running
-systemctl status mariadb
+# Check PostgreSQL running
+systemctl status postgresql
 
-# Check bind address
-grep bind-address /etc/mysql/mariadb.conf.d/50-server.cnf
+# Check listen address
+grep listen_addresses /etc/postgresql/*/main/postgresql.conf
 
 # Check firewall
 ufw status
@@ -115,8 +111,8 @@ ufw status
 
 On DB server:
 ```bash
-mysql -u root -p -e "SELECT User, Host FROM mysql.user WHERE User='strapi_user';"
-# Should show: strapi_user | 167.172.66.204
+sudo -u postgres psql -c "SELECT usename FROM pg_user WHERE usename = 'strapi_user';"
+# Should show: strapi_user
 ```
 
 ### View Logs
@@ -129,21 +125,10 @@ docker compose logs -f strapi
 
 ---
 
-## � Architecture Benefits
-
-| Feature | Benefit |
-|---------|---------|
-| Separate DB Server | Better security isolation |
-| UFW Whitelist | Only app server can access DB |
-| Scalable | Add more app servers easily |
-| Centralized Backup | Single DB to backup |
-
----
-
 ## ✅ Done!
 
 Your Strapi is now running with:
-- ✅ Dedicated MariaDB server
+- ✅ Dedicated PostgreSQL server
 - ✅ Strict firewall whitelist
 - ✅ Auto-deploy on git push
 - ✅ Database connectivity check
