@@ -1,3 +1,9 @@
+const isProduction = process.env.NODE_ENV === 'production';
+const corsOrigins = [
+    process.env.FRONTEND_URL,
+    ...(isProduction ? [] : ['http://localhost:3000', 'http://localhost:1337']),
+].filter(Boolean);
+
 module.exports = [
     'strapi::logger',
     'strapi::errors',
@@ -31,13 +37,7 @@ module.exports = [
         config: {
             enabled: true,
             headers: '*',
-            origin: [
-                'http://localhost:3000',
-                'http://localhost:1337',
-                'https://yourdomain.com',
-                'https://www.yourdomain.com',
-                process.env.FRONTEND_URL,
-            ].filter(Boolean),
+            origin: corsOrigins,
         },
     },
     'strapi::poweredBy',

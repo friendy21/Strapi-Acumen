@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       # Multi-tenant configuration
       TENANT_ID: ${TENANT_ID:-default}
       # PostgreSQL connection to external DB Hub
@@ -28,6 +28,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       HOST: 0.0.0.0
       PORT: 1337
+    command: npm run develop
     ports:
       - "1337:1337"
     networks:
