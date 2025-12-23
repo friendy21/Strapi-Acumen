@@ -131,6 +131,7 @@ async function fetchFromStrapi<T>(
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        'X-Tenant-ID': process.env.NEXT_PUBLIC_TENANT_ID || 'default',
         ...(STRAPI_TOKEN && { Authorization: `Bearer ${STRAPI_TOKEN}` }),
         ...fetchOptions.headers,
     };
