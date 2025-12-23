@@ -34,8 +34,10 @@ module.exports = [
             origin: [
                 'http://localhost:3000',
                 'http://localhost:1337',
-                process.env.FRONTEND_URL || 'http://localhost:3000',
-            ],
+                'https://yourdomain.com',
+                'https://www.yourdomain.com',
+                process.env.FRONTEND_URL,
+            ].filter(Boolean),
         },
     },
     'strapi::poweredBy',
