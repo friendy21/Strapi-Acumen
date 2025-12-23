@@ -1,13 +1,21 @@
+const ensureSecret = (name, value) => {
+    if (!value || value === 'toBeModified') {
+        throw new Error(`${name} must be set to a non-default value.`);
+    }
+
+    return value;
+};
+
 module.exports = ({ env }) => ({
     auth: {
-        secret: env('ADMIN_JWT_SECRET', 'toBeModified'),
+        secret: ensureSecret('ADMIN_JWT_SECRET', env('ADMIN_JWT_SECRET')),
     },
     apiToken: {
-        salt: env('API_TOKEN_SALT', 'toBeModified'),
+        salt: ensureSecret('API_TOKEN_SALT', env('API_TOKEN_SALT')),
     },
     transfer: {
         token: {
-            salt: env('TRANSFER_TOKEN_SALT', 'toBeModified'),
+            salt: ensureSecret('TRANSFER_TOKEN_SALT', env('TRANSFER_TOKEN_SALT')),
         },
     },
     flags: {
